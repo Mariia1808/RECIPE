@@ -6,7 +6,7 @@ const {User, Cabinet} = require('../models/models')
 
 const generateJwt = (id, email) => {
     return jwt.sign(
-        {id: id, email}, 
+        {id, email}, 
         process.env.SECRET_KEY,
         {expiresIn: '24h'}
     )
@@ -14,8 +14,8 @@ const generateJwt = (id, email) => {
 
 class UserController {
     async registration(req, res){
-        const {name, last_name, phone, email, password} = req.body
-        if (!name && !last_name && !phone && !email && !password){
+        const {name, email, password} = req.body
+        if (!name && !email && !password){
             return next(ApiError.badRequest('Не все поля заполнены'))
         }
         const candidate = await User.findOne({where:{email}})
@@ -23,12 +23,9 @@ class UserController {
             return next(ApiError.badRequest('Пользователь с таким email уже существует'))
         }
         const hashPassword = await bcrypt.hash(password, 5)
-        const user = await User.create({name, last_name, phone, email, password: hashPassword})
+        const user = await User.create({name, email, password: hashPassword})
         const cabinet = await Cabinet.create({userId: user.id})
-        //const favorites = await Cabinet.create({userId: user.id})
-        //const my_recipe = await Cabinet.create({userId: user.id})
-        //const rating = await Cabinet.create({userId: user.id})
-        //const cook = await Cabinet.create({userId: user.id})
+        
         const token = generateJwt(user.id, user.email)
         return res.json({token})
     }
@@ -41,7 +38,7 @@ class UserController {
         let comparePassword = bcrypt.compareSync(password, user.password)
         if(!comparePassword){
             return next(ApiError.internal('Указан неверный пароль'))
-        }
+        } 
         const token = generateJwt(user.id, user.email)
         return res.json({token})
     }
